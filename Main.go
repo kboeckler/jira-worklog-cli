@@ -20,16 +20,26 @@ func completer(d prompt.Document) []prompt.Suggest {
 }
 
 func main() {
-	var cmd string
-	if len(os.Args) > 1 {
-		cmd = os.Args[1]
-	}
+	cmd := getArgument(1)
 
 	var lister = command.CreateLister()
+	var adder = command.CreateAdder()
 
 	switch cmd {
 	case "list":
 		fmt.Println(lister.List())
+		fallthrough
+	case "add":
+		params := command.Addparams{}
+		params.Story = getArgument(2)
+		params.Worklog = getArgument(3)
+		params.Comment = getArgument(4)
+		result, err := adder.Add(params)
+		if err == nil {
+			fmt.Println(result)
+		} else {
+			_, _ = fmt.Fprintf(os.Stderr, "%s\n", err)
+		}
 		fallthrough
 	default:
 		os.Exit(0)
@@ -54,4 +64,11 @@ func main() {
 			loggedTime += 1
 		}
 	}
+}
+
+func getArgument(position int) string {
+	if len(os.Args) > position {
+		return os.Args[position]
+	}
+	return ""
 }
