@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/c-bata/go-prompt"
+	"github.com/jcelliott/lumber"
 	"github.com/kboeckler/jira-worklog-cli/command"
+	"github.com/kboeckler/jira-worklog-cli/issue"
+	"github.com/kboeckler/jira-worklog-cli/restclient"
 	"os"
 	"strings"
 )
@@ -20,15 +23,21 @@ func completer(d prompt.Document) []prompt.Suggest {
 }
 
 func main() {
+	lumber.Level(lumber.INFO)
+
 	cmd := getArgument(1)
 
 	var lister = command.CreateLister()
 	var adder = command.CreateAdder()
+	var client = restclient.CreateRestclient("http://localhost:8080", "test", "test")
+	var issues issue.List
+	client.OpenGETRequest("/rest/api/2/search/?jql=worklogAuthor%3DcurrentUser()%20AND%20worklogDate>%3DstartOfDay()%20AND%20worklogDate<%3DendOfDay()", &issues)
+	lister.SetIssues(issues)
 
 	switch cmd {
 	case "list":
 		fmt.Println(lister.List())
-		fallthrough
+		os.Exit(0)
 	case "add":
 		params := command.Addparams{}
 		params.Story = getArgument(2)
@@ -40,7 +49,7 @@ func main() {
 		} else {
 			_, _ = fmt.Fprintf(os.Stderr, "%s\n", err)
 		}
-		fallthrough
+		os.Exit(0)
 	default:
 		os.Exit(0)
 	}
