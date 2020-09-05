@@ -47,8 +47,8 @@ func (endpoint *restclientImpl) OpenRequestWithInput(url string, method string, 
 	endpoint.openRequestWithEncodedInput(url, method, body, record)
 }
 
-func (endpoint *restclientImpl) openRequestWithEncodedInput(url string, method string, bufferedInput *bytes.Buffer, record interface{}) {
-	log.Debug("Open %s %s Request for \"%s\"", method, endpoint.baseUrl, url)
+func (endpoint *restclientImpl) openRequestWithEncodedInput(url string, method string, bufferedInput *bytes.Buffer, responseRecord interface{}) {
+	log.Debug("Open Request %s \"%s%s\" %s", method, endpoint.baseUrl, url, bufferedInput)
 
 	// Build the request
 	req, err := http.NewRequest(method, endpoint.baseUrl+url, bufferedInput)
@@ -81,8 +81,11 @@ func (endpoint *restclientImpl) openRequestWithEncodedInput(url string, method s
 	// Defer the closing of the body
 	defer resp.Body.Close()
 
+	responseData, err := ioutil.ReadAll(resp.Body)
+
 	if !strings.HasPrefix(resp.Status, "2") {
 		log.Fatal("Request not successful: Http %d", resp.StatusCode)
+		log.Debug("Response: %s/n", responseData)
 		os.Exit(-1)
 	}
 
@@ -90,7 +93,6 @@ func (endpoint *restclientImpl) openRequestWithEncodedInput(url string, method s
 		return
 	}
 
-	responseData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal("Error reading Response: ", err)
 		os.Exit(-1)
@@ -98,8 +100,10 @@ func (endpoint *restclientImpl) openRequestWithEncodedInput(url string, method s
 
 	payload := string(responseData)
 
-	// Use json.Decode for reading streams of JSON data
-	if err := json.NewDecoder(strings.NewReader(payload)).Decode(record); err != nil {
-		log.Warn("DecodingError: ", err)
+	if responseRecord != nil {
+		// Use json.Decode for reading streams of JSON data
+		if err := json.NewDecoder(strings.NewReader(payload)).Decode(responseRecord); err != nil {
+			log.Warn("DecodingError: ", err)
+		}
 	}
 }

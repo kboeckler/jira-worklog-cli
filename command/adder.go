@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/kboeckler/jira-worklog-cli/color"
+	"github.com/kboeckler/jira-worklog-cli/restclient"
 	"strings"
 )
 
@@ -13,24 +14,32 @@ type adder interface {
 }
 
 type Addparams struct {
-	Story   string
-	Worklog string
-	Comment string
+	IssueKey string
+	Worklog  string
+	Comment  string
 }
 
-type adderimpl struct{}
+type adderimpl struct {
+	client restclient.Restclient
+}
 
-func CreateAdder() adder {
-	return &adderimpl{}
+func CreateAdder(client restclient.Restclient) adder {
+	return &adderimpl{client: client}
 }
 
 func (a adderimpl) Add(params Addparams) (string, error) {
+
 	if strings.EqualFold(params.Worklog, "") {
 		return "", errors.New("Worklog cannot be empty")
 	}
-	if strings.EqualFold(params.Story, "") {
-		return "", errors.New("Story cannot be null")
+	if strings.EqualFold(params.IssueKey, "") {
+		return "", errors.New("IssueKey cannot be null")
 	}
+
+	reqBody := CreateWorklogFormatted{
+		TimeSpentFormatted: params.Worklog,
+	}
+	a.client.OpenRequestWithInput(fmt.Sprintf("/rest/api/2/issue/%s/worklog", params.IssueKey), "POST", reqBody, nil)
 
 	rows := []string{
 		"IMPM-456 Testsystem verbessern  30m",
@@ -40,7 +49,7 @@ func (a adderimpl) Add(params Addparams) (string, error) {
 		fmt.Sprintf("%s========                        4h 30m%s", color.Green, color.Reset),
 	}
 	var res bytes.Buffer
-	res.WriteString(fmt.Sprintf("Logged %s on %s Docker (%s)\n", params.Worklog, params.Story, params.Comment))
+	res.WriteString(fmt.Sprintf("Logged %s on %s Docker (%s)\n", params.Worklog, params.IssueKey, params.Comment))
 	res.WriteString(fmt.Sprintf("%sTotally logged today:\n%s", color.Green, color.Reset))
 	for _, row := range rows {
 		res.WriteString(fmt.Sprintf("%s\n", row))

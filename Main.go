@@ -24,12 +24,12 @@ func completer(d prompt.Document) []prompt.Suggest {
 
 func main() {
 	lumber.Level(lumber.INFO)
+	var client = restclient.CreateRestclient("http://localhost:8080", "test", "test")
 
 	cmd := getArgument(1)
 
 	var lister = command.CreateLister()
-	var adder = command.CreateAdder()
-	var client = restclient.CreateRestclient("http://localhost:8080", "test", "test")
+	var adder = command.CreateAdder(client)
 	var issues issue.List
 	client.OpenGETRequest("/rest/api/2/search/?jql=worklogAuthor%3DcurrentUser()%20AND%20worklogDate>%3DstartOfDay()%20AND%20worklogDate<%3DendOfDay()", &issues)
 	lister.SetIssues(issues)
@@ -40,7 +40,7 @@ func main() {
 		os.Exit(0)
 	case "add":
 		params := command.Addparams{}
-		params.Story = getArgument(2)
+		params.IssueKey = getArgument(2)
 		params.Worklog = getArgument(3)
 		params.Comment = getArgument(4)
 		result, err := adder.Add(params)
