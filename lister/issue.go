@@ -1,4 +1,4 @@
-package issue
+package lister
 
 type List struct {
 	StartAt int     `json:"startAt"`

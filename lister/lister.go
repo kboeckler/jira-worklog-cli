@@ -1,30 +1,24 @@
-package command
+package lister
 
 import (
 	"bytes"
 	"fmt"
 	"github.com/kboeckler/jira-worklog-cli/color"
-	"github.com/kboeckler/jira-worklog-cli/issue"
+	"github.com/kboeckler/jira-worklog-cli/restclient"
 )
 
-type Lister interface {
-	List() string
-	SetIssues(issues issue.List)
+type Lister struct {
+	client restclient.Restclient
 }
 
-type listerimpl struct {
-	issues issue.List
+func CreateLister(client restclient.Restclient) *Lister {
+	return &Lister{client: client}
 }
 
-func CreateLister() Lister {
-	return &listerimpl{}
-}
+func (l *Lister) Execute(params string) (string, error) {
+	var issues List
+	l.client.OpenGETRequest("/rest/api/2/search/?jql=worklogAuthor%3DcurrentUser()%20AND%20worklogDate>%3DstartOfDay()%20AND%20worklogDate<%3DendOfDay()", &issues)
 
-func (l *listerimpl) SetIssues(issues issue.List) {
-	l.issues = issues
-}
-
-func (l *listerimpl) List() string {
 	preRows := []string{
 		"IMPM-123 Objekt Rückmeldung   ",
 		"\\ IMPM-574 CR-Anmerkungen       1h",
@@ -39,7 +33,7 @@ func (l *listerimpl) List() string {
 	for _, r := range preRows {
 		rows = append(rows, r)
 	}
-	for _, iss := range l.issues.Issues {
+	for _, iss := range issues.Issues {
 		row := fmt.Sprintf("%s %s", iss.Key, iss.Fields.Summary)
 		rows = append(rows, row)
 	}
@@ -48,5 +42,5 @@ func (l *listerimpl) List() string {
 	for _, row := range rows {
 		res.WriteString(fmt.Sprintf("%s\n", row))
 	}
-	return res.String()
+	return res.String(), nil
 }
